@@ -1,11 +1,14 @@
 from datetime import date, timedelta
 import json
+import sqlite3
 
 
 class TaskTracker:
     def __init__(self):
         self.start_date = None
         self.failed_days = []
+        self.save_file_name = 'tracker_data.json'
+
 
     def set_start_date(self, start_date):
         self.start_date = start_date
@@ -37,20 +40,20 @@ class TaskTracker:
         # Calculate the percentage
         return (success_days / total_days) * 100
 
-    def save_to_file(self, filename):
+    def save_to_file(self):
         data = {
             'start_date': str(self.start_date),
             'failed_days': [str(day) for day in self.failed_days]
         }
-        with open(filename, 'w') as file:
+        with open(self.save_file_name, 'w') as file:
             json.dump(data, file)
 
     def get_num_failed_days(self):
         return len(self.failed_days)
 
-    def load_from_file(self, filename):
+    def load_from_file(self):
         try:
-            with open(filename, 'r') as file:
+            with open(self.save_file_name, 'r') as file:
                 data = json.load(file)
                 self.start_date = date.fromisoformat(data['start_date'])
                 self.failed_days = [date.fromisoformat(day) for day in data['failed_days']]

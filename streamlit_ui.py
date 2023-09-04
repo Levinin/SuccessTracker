@@ -1,7 +1,6 @@
 from datetime import date
 from task_tracker import TaskTracker
 import random
-import sqlite3
 
 import streamlit as st
 
@@ -13,12 +12,31 @@ all_exercises = home_exercises + mindfulness_exercises
 class StreamlitUI:
     def __init__(self, task_tracker):
         self.task_tracker = task_tracker
+        self.current_user = ""
 
     def run(self):
-        st.title('Success Tracker')
+        st.set_page_config(page_title="Success Tracker", page_icon="ico.png")
+
+        st.sidebar.title(f'Welcome to Success Tracker!')
+
+        # Login
+        username = st.sidebar.text_input("Username")
+        password = st.sidebar.text_input("Password", type='password')
+        if st.sidebar.button("Login"):
+            if username == "user" and password == '1234':
+                st.sidebar.success("Logged In as {}".format(username))
+                task_tracker = TaskTracker()
+                self.current_user = username
+                self.main()
+            else:
+                st.sidebar.warning("Incorrect Username/Password")
+
+    def main(self):
+
+        st.title(f":crown: {self.current_user}'s Success Journey")
 
         # Load state from file
-        self.task_tracker.load_from_file('tracker_data.json')
+        self.task_tracker.load_from_file()
 
         # Set start date in the task tracker
         self.task_tracker.set_start_date(st.date_input('Success Start Date', value=self.task_tracker.start_date))
@@ -52,7 +70,7 @@ class StreamlitUI:
         st.markdown(exercise)
 
         # Save state to file
-        self.task_tracker.save_to_file('tracker_data.json')
+        self.task_tracker.save_to_file()
 
 
 if __name__ == '__main__':

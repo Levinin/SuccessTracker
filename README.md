@@ -3,21 +3,28 @@
 ![img_1.png](img_1.png)
 
 A very simple tracker for habit change that allows people to track progress to 
-completing a task every day for 100 days in a row.
+completing a task every day for 100 days in a row. It can be used [here](https://successtracker.streamlit.app/).
 
-Uses sqlite3 to store data and streamlit for the UI. The login details for each
+As well as tracking progress, it gives a cheesy motivational message each day along with a
+mindfulness or a physical exercise to help the user stay on track. 
+
+Written in Python, it uses sqlite3 to store data and streamlit for the UI. 
+The login details for each
 user are only stored to allow retrieval of their success data. These are stored
-in hashed form and can not be retrieved or reset. This makes it safe and anonymous
+hashed with sha-3-512 and can not be retrieved or reset. This makes it safe and anonymous
 to use.
 
-Session values are stored but no cookies are used. This means the user must
+Session values are stored for operation but no cookies are used. This means the user must
 log in each time they use the app.
 
-The initial screen may be a little confusing on mobile since the login is in the
-side panel which is hidden by default on streamlit. This can be accessed by
+The current start screen may be a little confusing on mobile since the login is in the
+side panel which is hidden by default on streamlit. This will be fixed, for now login 
+can be accessed by
 clicking the '>' icon in the top left corner.
 
-![img.png](img.png)
+<div style="text-align:center;">
+<img src="img.png" alt="Description of the image" width="200">
+</div>
 
 The user can then enter their login details and click the 'Login' button. 
 

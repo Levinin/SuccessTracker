@@ -9,6 +9,7 @@ import json
 import sqlite3
 import hashlib
 import pickle
+from time import sleep
 
 
 class TaskTracker:
@@ -18,17 +19,27 @@ class TaskTracker:
         self.save_file_name = 'tracker_data.json'
         self.db_name = "user_data.db"
         self.hash = ""
-        self.db_conn = self.connect_to_db()
-        self.db_curr = self.db_conn.cursor()
         self.current_record = None
 
-    def connect_to_db(self):
-        return sqlite3.connect(self.db_name)
-
     def get_record(self, uname, password) -> bool:
-        print(self.hash)
-        self.db_curr.execute("SELECT * FROM user_data WHERE id = ? LIMIT 1;", (self.hash,))
-        self.current_record = self.db_curr.fetchone()
+        self.hash_uname_password(uname, password)
+
+        while True:
+            try:
+                db_conn = sqlite3.connect(self.db_name, timeout=10)
+                db_curr = db_conn.cursor()
+                db_curr.execute("SELECT * FROM user_data WHERE id = ? LIMIT 1;", (self.hash,))
+                self.current_record = db_curr.fetchone()
+                db_conn.commit()
+                break
+            except sqlite3.OperationalError as e:
+                if "SQLITE_BUSY" in str(e):
+                    sleep(0.1)
+                else:
+                    return "Database read error, please try again later."
+            finally:
+                db_conn.close()
+
         if self.current_record:
             self.start_date = date.fromisoformat(self.current_record[1])
             self.failed_days = pickle.loads(self.current_record[2])
@@ -39,7 +50,8 @@ class TaskTracker:
         self.start_date = start_date
 
     def increment_failed_day(self, _date: date):
-        self.failed_days.append(_date)
+        if len(self.failed_days) < (date.today() - self.start_date).days:
+            self.failed_days.append(_date)
 
     def adjust_failed_day(self):
         self.failed_days = self.failed_days[:-1]
@@ -50,8 +62,7 @@ class TaskTracker:
         hash_function.update(password.encode('utf-8'))
         self.hash = hash_function.hexdigest()
 
-    def calculate_success_percentage(self, slip_list):
-        self.failed_days = slip_list
+    def calculate_success_percentage(self):
         today = date.today()
         # Success days are all days between start date and today or 100 days, whichever is smaller
         # Calculate the number of days between start date and today
@@ -72,16 +83,29 @@ class TaskTracker:
         # Calculate the percentage
         return (success_days / total_days) * 100
 
-    def save_to_db(self, _slips):
+    def save_to_db(self):
         """Write the hash, start date and failed days to the database. Catch a write failure and return False."""
         start = str(self.start_date)
-        slips = pickle.dumps(_slips)
-        # print(start, self.failed_days)
+        slips = pickle.dumps(self.failed_days)
 
-        self.db_curr.execute(f"INSERT OR IGNORE INTO user_data(id, start, slips) VALUES (?,?,?);",
-                             (self.hash, start, slips))
-        self.db_curr.execute(f"UPDATE user_data SET start = {start}, slips = {slips} WHERE id = {self.hash};")
-        self.db_conn.commit()
+        while True:
+            try:
+                db_conn = sqlite3.connect(self.db_name, timeout=10)
+                db_curr = db_conn.cursor()
+                db_curr.execute("INSERT OR IGNORE INTO user_data(id, start, slips) VALUES (?,?,?);",
+                                     (self.hash, start, slips))
+                db_curr.execute("UPDATE user_data SET start = ?, slips = ? WHERE id = ?;",
+                                     (start, slips, self.hash))
+
+                db_conn.commit()
+                break
+            except sqlite3.OperationalError as e:
+                if "SQLITE_BUSY" in str(e):
+                    sleep(0.1)
+                else:
+                    return "Database error, please try again later."
+            finally:
+                db_conn.close()
 
     def save_to_file(self):
         data = {
@@ -105,5 +129,4 @@ class TaskTracker:
             self.start_date = date.today()
             pass
 
-    def __del__(self):
-        self.db_conn.close()
+
